@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-LINUX_DISTR=${LINUX_DISTR:-'ubuntu'}
-
 while getopts ":i:" opt; do
     case $opt in
       i) IMAGE=$OPTARG
@@ -11,18 +9,26 @@ while getopts ":i:" opt; do
 done
 
 shift $((OPTIND-1))
-
-IMAGE="${IMAGE:-atsgen/igb-uio-${LINUX_DISTR}}"
 TAG=${1:-latest}
 
-logfile="./build-igb_uio.log"
-echo Building igb-uio image: ${IMAGE}:${TAG} | tee $logfile
+for d in $(ls -d $(dirname $0)/*/);do
+  IFS='/' read -ra txt <<< "$d"
+  LINUX_DISTR=${txt[1]}
 
-build_opts="--build-arg LC_ALL=en_US.UTF-8 --build-arg LANG=en_US.UTF-8 --build-arg LANGUAGE=en_US.UTF-8"
-build_opts+=" --no-cache --tag ${IMAGE}:${TAG} -f Dockerfile.${LINUX_DISTR} ."
+  IMAGE="atsgen/igb-uio-${LINUX_DISTR}"
 
-scp -r $(dirname $0)/../src .
+  logfile="./build-igb-uio-${LINUX_DISTR}.log"
+  echo Building igb-uio image: ${IMAGE}:${TAG} | tee $logfile
 
-sudo docker build $build_opts 2>&1 | tee -a $logfile
+  build_opts="--build-arg LC_ALL=en_US.UTF-8 --build-arg LANG=en_US.UTF-8 --build-arg LANGUAGE=en_US.UTF-8"
+  build_opts+=" --no-cache --tag ${IMAGE}:${TAG} -f Dockerfile ."
 
-rm -rf src
+
+  pushd ${LINUX_DISTR}
+  scp -r $(dirname $0)/../../src .
+  sudo docker build $build_opts 2>&1 | tee -a ../$logfile
+  rm -rf src
+  popd
+
+done
+exit 0
