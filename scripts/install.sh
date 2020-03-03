@@ -5,6 +5,14 @@ set -ex
 dir=$(dirname $0)
 source $dir/function
 
+if is_ubuntu; then
+  apt-get update
+  apt-get install -y make gcc dkms
+else
+  echo "UnSupported OS..."
+  exit 1
+fi
+
 sdir=$dir/../src
 version=0.1-dev
 templ=$(cat $sdir/dkms.conf.tmpl)
